@@ -62,7 +62,7 @@ class AvlTree {
 		}
 
 		void calc_height(int node){
-			nodes[node].height=1+ ((lc(node).height>rc(node).height)?lc(node).height:rc(node).height);
+			nodes[node].height=1+std::max( lc(node).height, rc(node).height );
 		}
 
 		void replace_child(int root, int oldChild, int newChild){
