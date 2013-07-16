@@ -48,13 +48,13 @@ class AvlTree {
     bool has_right(int root) const { return root!=-1 && !nodes[nodes[root].rightChild].empty; }
     bool has_left(int root) const { return root!=-1 && !nodes[nodes[root].leftChild ].empty; }
 
-    void walker(int root, std::ofstream& out) const {
-        if(!nodes[root].empty){
-          out<<root<<"->"<<nodes[root].leftChild<<std::endl;
-          walker(nodes[root].leftChild, out);
-          out<<root<<"->"<<nodes[root].rightChild<<std::endl;
-          walker(nodes[root].rightChild, out);
-        }
+    void print_dot_helper(int root, std::ostream& out) const {
+      if(!nodes[root].empty){
+        out<<root<<"->"<<nodes[root].leftChild<<std::endl;
+        print_dot_helper(nodes[root].leftChild, out);
+        out<<root<<"->"<<nodes[root].rightChild<<std::endl;
+        print_dot_helper(nodes[root].rightChild, out);
+      }
     }
 
     int bf(int root) const {
@@ -209,16 +209,21 @@ class AvlTree {
       insert(datums,n);
     }
 
+    ///Return the number of rotations that have been made in the tree
     int rotations() const { return rotation_count; }
+
+    ///Reset the number of rotations that have been made in the tree
     void reset_rotations() { rotation_count=0; }
 
+    ///Return the number of nodes in the tree
     int size() const { return nodecount; }
 
-    void walk(std::ofstream &out, bool diagnostic=false) const {
+    ///Prints a dot (graphviz) diagram of the tree.
+    void print_dot(std::ostream &out, bool diagnostic=false) const {
       static int digraphlabel=0;
       digraphlabel++;
       out<<"digraph "<< digraphlabel <<" {"<<std::endl;
-      walker(treeroot, out);
+      print_dot_helper(treeroot, out);
       for(int i=0;i<nodes.size();i++)
         if(diagnostic){
           out<<i<<" [label=\"i"<<i<<":h"<<nodes[i].height<<":p"<<nodes[i].parent;
