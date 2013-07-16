@@ -173,7 +173,7 @@ class AvlTree {
       }    
     }
 
-    int searcher(T datum) const {
+    int find_place_for_datum(T datum) const {
       int root=treeroot;
       while(!nodes[root].empty)
         if(a_equal_b(datum,nodes[root]))
@@ -218,29 +218,9 @@ class AvlTree {
     ///Return the number of nodes in the tree
     int size() const { return nodecount; }
 
-    ///Prints a dot (graphviz) diagram of the tree.
-    void print_dot(std::ostream &out, bool diagnostic=false) const {
-      static int digraphlabel=0;
-      digraphlabel++;
-      out<<"digraph "<< digraphlabel <<" {"<<std::endl;
-      print_dot_helper(treeroot, out);
-      for(int i=0;i<nodes.size();i++)
-        if(diagnostic){
-          out<<i<<" [label=\"i"<<i<<":h"<<nodes[i].height<<":p"<<nodes[i].parent;
-          if(!nodes[i].empty)
-            out<<":d"<<nodes[i].data<<"\"]"<<std::endl;
-          else
-            out<<"\",shape=polgyon]"<<std::endl;
-        } else
-          if(!nodes[i].empty)
-            out<<i<<" [label=\""<<nodes[i].data<<"\"]"<<std::endl;
-          else
-            out<<i<<" [style=invis]"<<std::endl;
-      out<<"}"<<std::endl;
-    }
-
+    ///Inserts a new datum into the appropriate place in the tree
     void insert(T datum){
-      int root=searcher(datum);
+      int root=find_place_for_datum(datum);
       if(!nodes[root].empty)
         return;
 
@@ -256,17 +236,14 @@ class AvlTree {
       insert_rebalance(root);
     }
 
+    ///Given a pointer to an array of datums, insert the whole array
     void insert(const T *datums, int n){
       for(int i=0;i<n;i++)
         insert(datums[i]);
     }
 
-    void nodeInfo(int root) const {
-      std::cerr<<"id="<<root<<", data="<<nodes[root].data<<", lc="<<nodes[root].leftChild<<", rc="<<nodes[root].rightChild<<", p="<<nodes[root].parent<<std::endl;
-    }
-
+    ///Remove a node, given its root number
     void removeNode(int root){
-//      nodeInfo(root);
       int parent=nodes[root].parent;
       if(!has_left(root) && !has_right(root)){
         //I am a leaf, so free me and my children
@@ -314,11 +291,12 @@ class AvlTree {
       remove_rebalance(parent);
     }
 
+    ///Given a datum, find it in the tree and remove it and its node
     void remove(T datum){
       #if AVLDEBUG
       std::cerr<<"You want to remove "<<datum<<std::endl;
       #endif
-      int root=searcher(datum);
+      int root=find_place_for_datum(datum);
       if(nodes[root].empty)
         return;
       nodecount--;
@@ -338,7 +316,27 @@ class AvlTree {
       out<<std::endl;
     }
 
-    void treePrint(std::ostream& out, int root=-1) const {
+
+    ////////////////////////
+    //Output diagrams
+    ////////////////////////
+
+    ///Prints a dot (graphviz) diagram of the tree.
+    void print_dot(std::ostream &out) const {
+      static int digraphlabel=0;
+      digraphlabel++;
+      out<<"digraph "<< digraphlabel <<" {"<<std::endl;
+      print_dot_helper(treeroot, out);
+      for(int i=0;i<nodes.size();i++)
+        if(!nodes[i].empty)
+          out<<i<<" [label=\""<<nodes[i].data<<"\"]"<<std::endl;
+        else
+          out<<i<<" [style=invis]"<<std::endl;
+      out<<"}"<<std::endl;
+    }
+
+    ///Prints output of the tree suitable for use with the LaTeX qTree package
+    void qtreePrint(std::ostream& out, int root=-1) const {
       if(root==-1) root=treeroot;
 
       if(nodes[root].empty){
@@ -347,9 +345,9 @@ class AvlTree {
       }
 
       out<<" [."<<nodes[root].data;
-      treePrint(out, nodes[root].leftChild);
+      qtreePrint(out, nodes[root].leftChild);
       out<<"] ";
-      treePrint(out, nodes[root].rightChild);
+      qtreePrint(out, nodes[root].rightChild);
       out<<"]";
     }
 };
