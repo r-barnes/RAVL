@@ -29,6 +29,8 @@ class AvlTree {
     bool a_less_b(const T &a, const node<T> &b)  const { return a<b.data; }
     bool a_equal_b(const T &a, const node<T> &b) const { return a==b.data;}
 
+    //Add a new node to the tree, but perform garbage collection such that the
+    //spaces occupied by removed nodes are reused
     int newnode(int parent){
       int index;
       if(!free_spaces.empty()){
@@ -43,9 +45,16 @@ class AvlTree {
       return index;
     }
 
+    //Return the right child of the node
     node<T> & rc(int root) { return nodes[nodes[root].rightChild]; }
+
+    //Return the left child of the node
     node<T> & lc(int root) { return nodes[nodes[root].leftChild]; }
+
+    //Does the node have a right child?
     bool has_right(int root) const { return root!=-1 && !nodes[nodes[root].rightChild].empty; }
+
+    //Does the node have a left child?
     bool has_left(int root) const { return root!=-1 && !nodes[nodes[root].leftChild ].empty; }
 
     void print_dot_helper(int root, std::ostream& out) const {
@@ -57,14 +66,17 @@ class AvlTree {
       }
     }
 
+    //Calculates the balance factor of a node from its children
     int bf(int root) const {
       return nodes[nodes[root].leftChild].height-nodes[nodes[root].rightChild].height;
     }
 
+    //Calculates the height of a node from its children
     void calc_height(int node){
       nodes[node].height=1+std::max( lc(node).height, rc(node).height );
     }
 
+    //Used to perform rotations
     void replace_child(int root, int oldChild, int newChild){
       if(root==-1)
         return;
@@ -74,6 +86,7 @@ class AvlTree {
         nodes[root].rightChild=newChild;
     }
 
+    //Rotation
     int rotate_left(int root){
       #if AVLDEBUG
       std::cerr<<"Rotating "<<nodes[root].data<<" left."<<std::endl;
@@ -88,6 +101,7 @@ class AvlTree {
       return pivot;
     }
 
+    //Rotation
     int rotate_right(int root){
       #if AVLDEBUG
       std::cerr<<"Rotating "<<nodes[root].data<<" right."<<std::endl;
@@ -102,6 +116,7 @@ class AvlTree {
       return pivot;
     }
 
+    //Rotation
     void rotate_parents(int root, int pivot){
       replace_child(nodes[root].parent, root, pivot);
       nodes[pivot].parent=nodes[root].parent;
@@ -109,6 +124,7 @@ class AvlTree {
       if(nodes[pivot].parent==-1) treeroot=pivot;
     }
 
+    //Rebalancing to be performed at each node by the rebalancing loop
     int insert_balances(int root){
       if(bf(root)==-2){
         if(bf(nodes[root].rightChild)==-1){        //Single left
@@ -144,17 +160,19 @@ class AvlTree {
       return root;
     }
 
+    //Rebalancing loop to be performed following insertion of a node
     void insert_rebalance(int root){
       while(root!=-1){
-        calc_height(root);    //TODO: Bail early if the balance factor has not changed
+        calc_height(root);    //TODO: Bailing early if the balance factor has not changed would save time
         root=insert_balances(root);
         root=nodes[root].parent;
       }
     }
 
+    //Rebalancing to be performed following the removal of a node
     void remove_rebalance(int root){
       while(root!=-1){
-        calc_height(root);    //TODO: Bail early somewhere in here
+        calc_height(root);    //TODO: Bailing early would save time
         if(bf(root)==2 && bf(nodes[root].leftChild)==0){
           #if AVLDEBUG
           std::cerr<<"Calling for rb single right rotation on "<<nodes[root].data<<"."<<std::endl;
@@ -173,6 +191,7 @@ class AvlTree {
       }    
     }
 
+    //Given a datum, find where it should or would be located in the tree
     int find_place_for_datum(T datum) const {
       int root=treeroot;
       while(!nodes[root].empty)
@@ -185,6 +204,7 @@ class AvlTree {
       return root;
     }
 
+    //Find the "successor node", the next highest node in the sequence
     int successor(int root) const {
       root=nodes[root].rightChild;
       while(!nodes[root].empty)
@@ -192,6 +212,7 @@ class AvlTree {
       return nodes[root].parent;
     }
 
+    //Common constructor used by all the others
     void init(){
       nodes.push_back(node<T>());
       treeroot=0;
@@ -199,50 +220,7 @@ class AvlTree {
       rotation_count=0;
     }
 
-  public:
-    AvlTree(){
-      init();
-    }
-
-    AvlTree(const T *datums, int n){
-      init();
-      insert(datums,n);
-    }
-
-    ///Return the number of rotations that have been made in the tree
-    int rotations() const { return rotation_count; }
-
-    ///Reset the number of rotations that have been made in the tree
-    void reset_rotations() { rotation_count=0; }
-
-    ///Return the number of nodes in the tree
-    int size() const { return nodecount; }
-
-    ///Inserts a new datum into the appropriate place in the tree
-    void insert(T datum){
-      int root=find_place_for_datum(datum);
-      if(!nodes[root].empty)
-        return;
-
-      nodecount++;
-
-      nodes[root].set_data(datum);
-
-      int temp=newnode(root);
-      nodes[root].leftChild=temp;
-      temp=newnode(root);
-      nodes[root].rightChild=temp;
-
-      insert_rebalance(root);
-    }
-
-    ///Given a pointer to an array of datums, insert the whole array
-    void insert(const T *datums, int n){
-      for(int i=0;i<n;i++)
-        insert(datums[i]);
-    }
-
-    ///Remove a node, given its root number
+    ///Remove a node, given its root id
     void removeNode(int root){
       int parent=nodes[root].parent;
       if(!has_left(root) && !has_right(root)){
@@ -291,6 +269,59 @@ class AvlTree {
       remove_rebalance(parent);
     }
 
+  public:
+    AvlTree(){
+      init();
+    }
+
+    AvlTree(const T *datums, int n){
+      init();
+      insert(datums,n);
+    }
+
+    ///Return the number of rotations that have been made in the tree
+    int rotations() const { return rotation_count; }
+
+    ///Reset the number of rotations that have been made in the tree
+    void reset_rotations() { rotation_count=0; }
+
+    ///Return the number of nodes in the tree
+    int size() const { return nodecount; }
+
+    ///Returns the root of the tree
+    T& top() { return nodes[treeroot].data; }
+
+    ///Returns the root of the tree, and removes it
+    T pop() {
+      T temp=nodes[treeroot].data;
+      removeNode(treeroot);
+      return temp;
+    }
+
+    ///Inserts a new datum into the appropriate place in the tree
+    void insert(T datum){
+      int root=find_place_for_datum(datum);
+      if(!nodes[root].empty)
+        return;
+
+      nodecount++;
+
+      nodes[root].set_data(datum);
+
+      int temp=newnode(root);
+      nodes[root].leftChild=temp;
+      temp=newnode(root);
+      nodes[root].rightChild=temp;
+
+      insert_rebalance(root);
+    }
+
+    ///Given a pointer to an array of datums, insert the whole array
+    void insert(const T *datums, int n){
+      for(int i=0;i<n;i++)
+        insert(datums[i]);
+    }
+
     ///Given a datum, find it in the tree and remove it and its node
     void remove(T datum){
       #if AVLDEBUG
@@ -303,6 +334,17 @@ class AvlTree {
       removeNode(root);
     }
 
+    ////////////////////////
+    //Output diagrams
+    ////////////////////////
+
+    /**
+      @brief Prints the tree in order of its levels.
+
+          This prints first the root of the tree, then the two nodes of the
+          root, then the nodes of the nodes, and so on. It is a breadht-first
+          exploration of the tree.
+    */
     void levelPrint(std::ostream& out) const {
       std::queue<int> bfs;
       bfs.push(treeroot);
@@ -315,11 +357,6 @@ class AvlTree {
       }
       out<<std::endl;
     }
-
-
-    ////////////////////////
-    //Output diagrams
-    ////////////////////////
 
     ///Prints a dot (graphviz) diagram of the tree.
     void print_dot(std::ostream &out) const {
